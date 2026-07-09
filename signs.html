@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>津波情報オーバーレイ</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=block" rel="stylesheet">
+
+<style>
+*{ margin:0; padding:0; box-sizing:border-box; }
+html,body{
+    width:3840px;
+    height:2160px;
+    overflow:hidden;
+    background:transparent;
+    font-family:"Noto Sans JP", sans-serif;
+}
+
+:root{
+    --font-main:"Noto Sans JP", sans-serif;
+    --weight-r:400;
+    --weight-m:500;
+    --weight-db:700;
+    --weight-bold:700;
+    --h:calc(2160px / 7);
+}
+
+#main{
+    width:3840px;
+    height:2160px;
+    display:flex;
+    align-items:flex-end;
+    opacity:0;
+    visibility:hidden;
+}
+#main.ready{
+    opacity:1;
+    visibility:visible;
+}
+
+#block{
+    width:3840px;
+    display:flex;
+    flex-direction:column;
+    background:rgba(0, 0, 0, 0.6);
+    overflow:hidden;
+    position:relative;
+}
+
+#page-content{ width:100%; }
+
+.page{
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-end;
+}
+
+#no-tsunami-screen{
+    position:fixed;
+    left:0;
+    top:0;
+    width:3840px;
+    height:2160px;
+    background:rgba(0, 0, 0, 0.7);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:9999;
+}
+#no-tsunami-screen.show{ display:flex; }
+
+#no-tsunami-text{
+    font-family:var(--font-main);
+    font-weight:var(--weight-db);
+    font-size:315px;
+    line-height:1.25;
+    color:#fff;
+    text-align:center;
+    white-space:nowrap;
+}
+
+.header, .row{
+    display:grid;
+    grid-template-columns:2290px 700px 50px 800px;
+    height:var(--h);
+    font-family:var(--font-main);
+    font-weight:var(--weight-m);
+    font-size:210px;
+    line-height:1;
+    align-items:center;
+    color:#fff;
+    position:relative;
+}
+
+.header{
+    font-family:var(--font-main) !important;
+    font-weight:var(--weight-m) !important;
+}
+.header *{
+    font-family:var(--font-main) !important;
+    font-weight:var(--weight-m) !important;
+}
+
+.header.major{ background:#a202a7; }
+.header.warn{ background:#ff2801; }
+.header.watch{
+    background:#faf601;
+    color:#000;
+    font-family:var(--font-main) !important;
+    font-weight:var(--weight-m) !important;
+}
+
+.row.divider::after{
+    content:"";
+    position:absolute;
+    bottom:-5px;
+    left:0;
+    width:100%;
+    height:10px;
+    background:#fff;
+    opacity:0.9;
+    z-index:10;
+    box-shadow:0 3px 6px rgba(0, 0, 0, 0.5);
+}
+
+.header-marker, .row-marker{
+    position:absolute;
+    top:50%;
+    width:10px;
+    height:250px;
+    transform:translateY(-50%);
+    z-index:30;
+    pointer-events:none;
+}
+.header-marker{ background:#fff; }
+.header.watch .header-marker{ background:#000; }
+.row-marker{ background:#fff; }
+.marker-x2242{ left:2242px; }
+.marker-x3035{ left:3035px; }
+
+.name{
+    grid-column:1;
+    padding-left:60px;
+    display:flex;
+    align-items:center;
+    width:2290px;
+    height:100%;
+    overflow:hidden;
+}
+.name-text{
+    display:inline-block;
+    white-space:nowrap;
+    transform-origin:left center;
+}
+
+.header-field{
+    position:absolute;
+    top:0;
+    height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    pointer-events:none;
+}
+.header-field.first-wave{
+    left:2280px;
+    width:715px;
+}
+.header-field.max-height{
+    left:3090px;
+    width:680px;
+}
+
+.header-sub-title{
+    width:100%;
+    height:160px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    white-space:nowrap;
+    overflow:hidden;
+    font-family:var(--font-main) !important;
+    font-weight:var(--weight-m) !important;
+    font-size:160px;
+    line-height:1;
+}
+.header-sub-inner{
+    height:160px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    white-space:nowrap;
+    overflow:hidden;
+    font-family:var(--font-main) !important;
+    font-weight:var(--weight-m) !important;
+    font-size:160px;
+    line-height:1;
+}
+.sub-symbol-box{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+    height:160px;
+    overflow:visible;
+    margin-right:10px;
+    line-height:1;
+}
+.sub-symbol{
+    display:inline-block;
+    flex-shrink:0;
+    transform:scaleX(0.70);
+    transform-origin:center center;
+    line-height:1;
+    font-family:var(--font-main) !important;
+    font-weight:var(--weight-m) !important;
+}
+.sub-text-wrap{
+    display:inline-block;
+    flex-shrink:0;
+    overflow:hidden;
+    white-space:nowrap;
+    height:160px;
+    line-height:1;
+}
+.sub-text{
+    display:inline-block;
+    white-space:nowrap;
+    transform-origin:left center;
+    line-height:1;
+    font-family:var(--font-main) !important;
+    font-weight:var(--weight-m) !important;
+}
+
+.row .arrival{
+    grid-column:2;
+    width:700px;
+    height:100%;
+    display:flex;
+    align-items:center;
+    overflow:hidden;
+    color:#f9f806;
+    font-family:var(--font-main);
+    font-weight:var(--weight-r);
+}
+.row .arrival *{
+    font-family:var(--font-main);
+    font-weight:var(--weight-r);
+}
+.arrival-text{
+    width:100%;
+    height:200px;
+    display:flex;
+    align-items:center;
+    white-space:nowrap;
+    font-family:var(--font-main);
+    font-weight:var(--weight-r);
+    font-size:150px;
+    line-height:1;
+}
+.arrival-text.condition-layout{
+    justify-content:center;
+    height:200px;
+    font-size:200px;
+}
+.condition-val{
+    display:inline-block;
+    height:200px;
+    line-height:1;
+    font-size:200px;
+    white-space:nowrap;
+    transform-origin:center center;
+}
+.arrival-text.time-layout{
+    justify-content:space-between;
+    padding:0;
+}
+.time-left-box{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    justify-content:center;
+    gap:4px;
+    transform-origin:left center;
+}
+.time-date-line{
+    font-size:85px;
+    line-height:1;
+    white-space:nowrap;
+}
+.time-ampm-line{
+    font-size:75px;
+    line-height:1;
+    white-space:nowrap;
+}
+.time-right-val{
+    display:inline-block;
+    font-size:190px;
+    line-height:1;
+    white-space:nowrap;
+    transform-origin:right center;
+}
+
+.spacer{
+    grid-column:3;
+    width:50px;
+    height:100%;
+}
+
+.height{
+    grid-column:4;
+    width:800px;
+    height:100%;
+    background:#fff;
+    color:#000;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:var(--font-main);
+    font-weight:var(--weight-bold);
+}
+.header .height{
+    background:transparent;
+    color:inherit;
+}
+.height-text{
+    height:200px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:190px;
+    line-height:1;
+    white-space:nowrap;
+    font-family:var(--font-main);
+    font-weight:var(--weight-bold);
+}
+.row.major .height-text{ color:#c800ff; }
+.row.warn .height-text{ color:#ff2801; }
+.row.watch .height-text{ color:#000; }
+</style>
+</head>
+
+<body>
+<div id="main">
+    <div id="block">
+        <div id="page-content"></div>
+    </div>
+</div>
+
+<div id="no-tsunami-screen">
+    <div id="no-tsunami-text">
+        現在、津波警報·注意報は<br>
+        発表されていません
+    </div>
+</div>
+
+<script>
+const WS_URL = "wss://api.p2pquake.net/v2/ws";
+// J-Alert JSONL ブリッジ URL（プラグインのTCP JSONLソケットをWebSocketへ中継したもの）。
+// ?jalert=ws://host:port で上書き可能。空文字にするとJ-Alert取り込みを無効化する。
+const JALERT_WS_URL = new URLSearchParams(location.search).get("jalert") ?? "ws://127.0.0.1:7356";
+const PAGE_SIZE = 7;
+const PAGE_DURATION = 5000;
+const rowHeight = 2160 / 7;
+
+/*
+    true  = 测试模式，立刻显示内置测试数据
+    false = 正常 WebSocket 实时模式
+*/
+const TEST_MODE = true;
+
+let pageTimer = null;
+let pageOffsets = [];
+let cachedPages = [];
+let currentPageIndex = 0;
+let tsunamiSocket = null;
+let reconnectTimer = null;
+let lastRenderedData = null;
+
+// 表示ソースの状態。areasを持つオブジェクト（P2Pのmsg／J-Alert正規化結果）、または解除時はnull。
+let latestP2P = null;
+let latestJAlert = null;
+// 直近の描画内容キー。変化がないときの無駄な再描画（ページ送りリセット）を防ぐ。
+let lastRenderKey = "__none__";
+
+function toHalfWidth(str) {
+    if (!str) return str;
+    return str.toString().replace(/[\uFF01-\uFF5E\u3000]/g, c => {
+        return c === "\u3000" ? " " : String.fromCharCode(c.charCodeAt(0) - 0xFEE0);
+    });
+}
+
+function escapeHtml(str) {
+    if (!str) return "";
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function mapGrade(g) {
+    if (g === "MajorWarning") return { label:"大津波警報", cls:"major" };
+    if (g === "Warning") return { label:"津波警報", cls:"warn" };
+    if (g === "Watch") return { label:"津波注意報", cls:"watch" };
+    return null;
+}
+
+function mapConditionText(condition) {
+    if (!condition) return "";
+    const text = toHalfWidth(condition);
+    const map = {
+        "ただちに津波来襲と予測":"すぐ来る",
+        "津波到達中と推測":"到達か",
+        "第1波の到達を確認":"すでに到達"
+    };
+    return map[text] || text;
+}
+
+function parseArrivalTime(value) {
+    if (!value || value === "-") return null;
+    const str = toHalfWidth(value);
+    const match = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})[T\s](\d{1,2}):(\d{2})/);
+    if (!match) return null;
+
+    const day = Number(match[3]);
+    const hour24 = Number(match[4]);
+    const ampm = hour24 < 12 ? "午前" : "午後";
+    const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+
+    return {
+        day:`${day}日`,
+        ampm:ampm,
+        time12:`${hour12}:${match[5]}`
+    };
+}
+
+function getArrivalInfo(firstHeight) {
+    if (!firstHeight) return { type:"empty", text:"-" };
+
+    if (firstHeight.condition) {
+        return {
+            type:"condition",
+            text:mapConditionText(firstHeight.condition)
+        };
+    }
+
+    if (firstHeight.arrivalTime) {
+        const parsed = parseArrivalTime(firstHeight.arrivalTime);
+        return parsed
+            ? { type:"arrivalTime", data:parsed }
+            : { type:"condition", text:toHalfWidth(firstHeight.arrivalTime) };
+    }
+
+    return { type:"empty", text:"-" };
+}
+
+function buildArrivalHtml(arrival) {
+    if (!arrival || arrival.type === "empty") {
+        return `<div class="arrival-text condition-layout">-</div>`;
+    }
+
+    if (arrival.type === "arrivalTime" && arrival.data) {
+        const d = arrival.data;
+        return `<div class="arrival-text time-layout"><div class="time-left-box"><span class="time-date-line">${escapeHtml(d.day)}</span><span class="time-ampm-line">${escapeHtml(d.ampm)}</span></div><span class="time-right-val">${escapeHtml(d.time12)}</span></div>`;
+    }
+
+    return `<div class="arrival-text condition-layout"><span class="condition-val">${escapeHtml(arrival.text)}</span></div>`;
+}
+
+function flatten(data) {
+    const list = [];
+    const target = Array.isArray(data) ? data[0] : data;
+
+    target.areas?.forEach(area => {
+        const grade = mapGrade(area.grade);
+
+        if (grade) {
+            list.push({
+                label:grade.label,
+                cls:grade.cls,
+                grade:area.grade,
+                name:area.name,
+                arrival:getArrivalInfo(area.firstHeight),
+                height:toHalfWidth(area.maxHeight?.description || "-")
+            });
+        }
+    });
+
+    return list;
+}
+
+function groupByGrade(list) {
+    const groups = [];
+    let currentGrade = null;
+    let currentGroup = null;
+
+    for (const item of list) {
+        if (item.grade !== currentGrade) {
+            currentGrade = item.grade;
+            currentGroup = {
+                grade:item.grade,
+                label:item.label,
+                cls:item.cls,
+                areas:[]
+            };
+            groups.push(currentGroup);
+        }
+
+        currentGroup.areas.push(item);
+    }
+
+    return groups;
+}
+
+function paginateGroups(groups) {
+    const pages = [];
+    let currentPage = [];
+    let currentCount = 0;
+
+    for (const group of groups) {
+        let remainingAreas = [...group.areas];
+
+        while (remainingAreas.length > 0) {
+            if (currentCount > 0 && (PAGE_SIZE - currentCount) < 2) {
+                pages.push(currentPage);
+                currentPage = [];
+                currentCount = 0;
+                continue;
+            }
+
+            currentPage.push({
+                type:"header",
+                cls:group.cls,
+                name:group.label
+            });
+            currentCount += 1;
+
+            const areasToPlace = remainingAreas.splice(0, PAGE_SIZE - currentCount);
+
+            for (const area of areasToPlace) {
+                currentPage.push({
+                    type:"row",
+                    cls:area.cls,
+                    name:area.name,
+                    arrival:area.arrival,
+                    height:area.height
+                });
+                currentCount += 1;
+            }
+
+            if (currentCount >= PAGE_SIZE) {
+                pages.push(currentPage);
+                currentPage = [];
+                currentCount = 0;
+            }
+        }
+    }
+
+    if (currentPage.length > 0) pages.push(currentPage);
+
+    pages.forEach(page => {
+        for (let i = 0; i < page.length; i++) {
+            page[i].divider = page[i].type === "row" && page[i + 1] && page[i + 1].type === "row";
+        }
+    });
+
+    return pages;
+}
+
+function buildHeaderSubTitle(text, limit) {
+    return `<div class="header-sub-title" data-max="${limit}"><div class="header-sub-inner"><span class="sub-symbol-box"><span class="sub-symbol">▼</span></span><span class="sub-text-wrap"><span class="sub-text">${escapeHtml(text)}</span></span></div></div>`;
+}
+
+function buildPageHtml(rows) {
+    const pageHeight = rows.length * rowHeight;
+    let html = `<div class="page" style="height:${pageHeight}px;">`;
+
+    rows.forEach((row, i) => {
+        const zIndexStyle = `style="z-index:${100 - i};"`;
+
+        if (row.type === "header") {
+            html += `<div class="header ${row.cls}" ${zIndexStyle}><div class="header-marker marker-x2242"></div><div class="header-marker marker-x3035"></div><div class="name"><span class="name-text">${escapeHtml(row.name)}</span></div><div class="header-field first-wave">${buildHeaderSubTitle("第1波予想", 715)}</div><div class="header-field max-height">${buildHeaderSubTitle("最大予想", 680)}</div></div>`;
+        } else {
+            html += `<div class="row ${row.cls || ""} ${row.divider ? "divider" : ""}" ${zIndexStyle}><div class="row-marker marker-x2242"></div><div class="name"><span class="name-text">${escapeHtml(row.name)}</span></div><div class="arrival">${buildArrivalHtml(row.arrival)}</div><div class="spacer"></div><div class="height"><span class="height-text">${escapeHtml(row.height)}</span></div></div>`;
+        }
+    });
+
+    return html + "</div>";
+}
+
+function showPage(index) {
+    const pageContent = document.getElementById("page-content");
+
+    currentPageIndex = index;
+    pageContent.style.transform = `translateY(${-pageOffsets[index] || 0}px)`;
+
+    const block = document.getElementById("block");
+
+    if (cachedPages[index]) {
+        block.style.height = `${cachedPages[index].length * rowHeight}px`;
+    }
+}
+
+function startPagination(pages) {
+    cachedPages = pages;
+    pageOffsets = [];
+
+    let offset = 0;
+
+    pages.forEach(page => {
+        pageOffsets.push(offset);
+        offset += page.length * rowHeight;
+    });
+
+    if (pageTimer) clearInterval(pageTimer);
+
+    showPage(0);
+
+    if (pages.length > 1) {
+        pageTimer = setInterval(() => {
+            showPage((currentPageIndex + 1) % pages.length);
+        }, PAGE_DURATION);
+    }
+}
+
+function scaleTextX(selector, maxWidth, origin = "center center") {
+    document.querySelectorAll(selector).forEach(el => {
+        el.style.transformOrigin = origin;
+        el.style.transform = "none";
+
+        const w = el.offsetWidth;
+
+        if (w > maxWidth) {
+            el.style.transform = `scaleX(${maxWidth / w})`;
+        }
+    });
+}
+
+function scaleHeaderSubTitles() {
+    document.querySelectorAll(".header-sub-title").forEach(box => {
+        const maxWidth = Number(box.getAttribute("data-max"));
+        const inner = box.querySelector(".header-sub-inner");
+        const symbol = box.querySelector(".sub-symbol");
+        const wrap = box.querySelector(".sub-text-wrap");
+        const text = box.querySelector(".sub-text");
+
+        if (!inner || !symbol || !wrap || !text) return;
+
+        inner.style.width = "auto";
+        text.style.transform = "none";
+        wrap.style.width = "auto";
+
+        const visualSymbolWidth = symbol.getBoundingClientRect().width;
+        const marginRight = parseFloat(getComputedStyle(symbol.parentElement).marginRight) || 0;
+
+        symbol.parentElement.style.width = `${visualSymbolWidth}px`;
+
+        const avail = maxWidth - visualSymbolWidth - marginRight;
+        const naturalTextWidth = text.offsetWidth;
+
+        if (naturalTextWidth > avail) {
+            wrap.style.width = `${avail}px`;
+            text.style.transform = `scaleX(${avail / naturalTextWidth})`;
+        } else {
+            wrap.style.width = `${naturalTextWidth}px`;
+        }
+
+        inner.style.width = `${visualSymbolWidth + marginRight + Math.min(naturalTextWidth, avail)}px`;
+    });
+}
+
+function applyScaling() {
+    scaleTextX(".name-text", 2290 - 60, "left center");
+    scaleHeaderSubTitles();
+    scaleTextX(".condition-val", 700, "center center");
+    scaleTextX(".time-left-box", 200, "left center");
+    scaleTextX(".time-right-val", 480, "right center");
+    scaleTextX(".height-text", 760, "center center");
+}
+
+function showNoTsunamiScreen() {
+    const main = document.getElementById("main");
+    const noTsunami = document.getElementById("no-tsunami-screen");
+    const block = document.getElementById("block");
+
+    if (pageTimer) clearInterval(pageTimer);
+
+    document.getElementById("page-content").innerHTML = "";
+
+    block.style.height = "0px";
+    main.classList.remove("ready");
+    noTsunami.classList.add("show");
+}
+
+function renderFromTsunamiData(data) {
+    lastRenderedData = data;
+
+    const main = document.getElementById("main");
+    const pageContent = document.getElementById("page-content");
+
+    main.classList.remove("ready");
+    document.getElementById("no-tsunami-screen").classList.remove("show");
+
+    const list = flatten(data);
+    const groups = groupByGrade(list);
+    const pages = paginateGroups(groups);
+
+    if (pages.length === 0) {
+        showNoTsunamiScreen();
+        return;
+    }
+
+    let allHtml = "";
+    pages.forEach(page => allHtml += buildPageHtml(page));
+
+    pageContent.innerHTML = allHtml;
+
+    requestAnimationFrame(() => {
+        applyScaling();
+        startPagination(pages);
+        main.classList.add("ready");
+    });
+}
+
+// 表示ソースの決定：J-Alert電文（放送系の権威情報）に警報等がある間はP2Pより優先し、
+// 解除されたらP2Pの現況へ戻る。どちらにも警報等が無ければ待機画面。
+function activeSourceData() {
+    if (latestJAlert && flatten(latestJAlert).length > 0) return latestJAlert;
+    if (latestP2P && flatten(latestP2P).length > 0) return latestP2P;
+    return null;
+}
+
+// ソース状態が変わったときだけ再描画する（同一内容ならページ送りをリセットしない）。
+function updateDisplay() {
+    const data = activeSourceData();
+    const key = data ? JSON.stringify(flatten(data)) : "__none__";
+    if (key === lastRenderKey) return;
+    lastRenderKey = key;
+    if (!data) showNoTsunamiScreen();
+    else renderFromTsunamiData(data);
+}
+
+function startTsunamiWebSocket() {
+    if (tsunamiSocket) {
+        try { tsunamiSocket.close(); } catch(e) {}
+        tsunamiSocket = null;
+    }
+
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+
+    tsunamiSocket = new WebSocket(WS_URL);
+
+    tsunamiSocket.addEventListener("open", () => console.log("WebSocket Connected"));
+
+    tsunamiSocket.addEventListener("message", event => {
+        try {
+            const msg = JSON.parse(event.data);
+
+            if (msg.code !== 552) return;
+
+            latestP2P = (msg.cancelled === true || !msg.areas || msg.areas.length === 0) ? null : msg;
+            updateDisplay();
+        } catch(e) {
+            console.error(e);
+        }
+    });
+
+    tsunamiSocket.addEventListener("close", () => {
+        console.log("WebSocket Closed. Reconnecting...");
+        reconnectTimer = setTimeout(startTsunamiWebSocket, 5000);
+    });
+
+    tsunamiSocket.addEventListener("error", () => {
+        try { tsunamiSocket.close(); } catch(e) {}
+    });
+}
+
+/* =========================================================================
+   J-Alert 電文（JSONL / 気象庁津波XML）取り込み
+
+   sdrsharp-j-alert-plugin / sdrplusplus-j-alert-plugin が出力する JSONL を、
+   TCPソケット→WebSocket 中継ブリッジ（tools/jalert-ws-bridge.mjs）経由で受信し、
+   各行の xml フィールド（気象庁津波XML: VTSE41）を P2P と同じ内部形状
+   { areas:[{grade,name,firstHeight,maxHeight}] } に正規化して既存の描画へ流す。
+   ========================================================================= */
+
+let jalertSocket = null;
+let jalertReconnectTimer = null;
+let jalertBuffer = "";
+let jalertLatestPacketTime = ""; // 採用済み電文の最新 packet_time（17桁, 文字列比較で単調）
+
+// 気象庁のKind名 → 内部グレード。コードは 大津波警報=52/53・津波警報=51・
+// 津波注意報=62/63 と複数存在する（実受信機データで確認）ため、コードではなく
+// 名称で判定する。津波予報・津波なし等は表示対象外(null)。
+function mapJmaTsunamiGrade(name) {
+    const n = name || "";
+    if (n.includes("大津波警報")) return "MajorWarning";
+    if (n.includes("津波警報")) return "Warning";
+    if (n.includes("津波注意報")) return "Watch";
+    return null;
+}
+
+// 直下の子要素を局所名（名前空間プレフィックス無視）で取得する。
+function childByLocalName(parent, localName) {
+    if (!parent) return null;
+    for (const el of Array.from(parent.children)) if (el.localName === localName) return el;
+    return null;
+}
+function childTextByLocalName(parent, localName) {
+    const el = childByLocalName(parent, localName);
+    return el ? (el.textContent || "").trim() : "";
+}
+
+// 気象庁津波XML(1電文) → P2P互換の { areas } 。パース不能なら null。
+function parseJAlertTsunamiXml(xmlText) {
+    const doc = new DOMParser().parseFromString(xmlText, "application/xml");
+    if (doc.getElementsByTagName("parsererror").length > 0) return null;
+
+    const areas = [];
+    // Body > Tsunami > Forecast > Item（名前空間非依存で走査）。
+    // Headline側の Item（Area/Category を直下に持たない）や Observation（Category無し）は除外。
+    for (const item of Array.from(doc.getElementsByTagNameNS("*", "Item"))) {
+        const areaEl = childByLocalName(item, "Area");
+        const categoryEl = childByLocalName(item, "Category");
+        if (!areaEl || !categoryEl) continue;
+
+        const kindEl = childByLocalName(categoryEl, "Kind");
+        const grade = mapJmaTsunamiGrade(childTextByLocalName(kindEl, "Name"));
+        if (!grade) continue; // 津波予報・なし等は表示しない
+
+        const firstHeightEl = childByLocalName(item, "FirstHeight");
+        const firstHeight = firstHeightEl ? {
+            condition: childTextByLocalName(firstHeightEl, "Condition") || undefined,
+            arrivalTime: childTextByLocalName(firstHeightEl, "ArrivalTime") || undefined
+        } : undefined;
+
+        const maxHeightEl = childByLocalName(item, "MaxHeight");
+        let heightDesc = "";
+        if (maxHeightEl) {
+            const th = childByLocalName(maxHeightEl, "TsunamiHeight");
+            heightDesc = (th && th.getAttribute("description")) || childTextByLocalName(maxHeightEl, "Condition") || "";
+        }
+
+        areas.push({
+            grade,
+            name: childTextByLocalName(areaEl, "Name"),
+            firstHeight,
+            maxHeight: { description: heightDesc || "-" }
+        });
+    }
+    return { areas };
+}
+
+// JSONL 1レコードを処理。津波電文かつ最新のものだけを採用して表示を更新する。
+function handleJAlertRecord(rec) {
+    if (!rec || rec.decoded !== true || !rec.xml) return;
+    // 津波電文の判定：chunk_type=issx、または見出し系フィールドに「津波」を含む。
+    const heads = `${rec.chunk_type || ""} ${rec.title || ""} ${rec.head_title || ""} ${rec.headline || ""}`;
+    if (String(rec.chunk_type || "").toLowerCase() !== "issx" && !heads.includes("津波")) return;
+
+    const pt = rec.packet_time || "";
+    if (pt && jalertLatestPacketTime && pt < jalertLatestPacketTime) return; // 古い電文は無視
+
+    const parsed = parseJAlertTsunamiXml(rec.xml);
+    if (!parsed) return;
+    if (pt) jalertLatestPacketTime = pt;
+    latestJAlert = parsed; // areas空＝J-Alert上は警報等なし → P2Pへ委譲される
+    updateDisplay();
+}
+
+// 受信バッファから完全な JSONL 行を取り出して処理する。
+// 改行区切りブリッジと「1メッセージ=1行（改行無し）」ブリッジの両方に対応。
+function pumpJAlertBuffer() {
+    let idx;
+    while ((idx = jalertBuffer.indexOf("\n")) >= 0) {
+        const line = jalertBuffer.slice(0, idx).trim();
+        jalertBuffer = jalertBuffer.slice(idx + 1);
+        if (line) { try { handleJAlertRecord(JSON.parse(line)); } catch(e) { console.error("J-Alert JSONL parse error", e); } }
+    }
+    const rest = jalertBuffer.trim();
+    if (rest) {
+        try { const rec = JSON.parse(rest); jalertBuffer = ""; handleJAlertRecord(rec); }
+        catch(e) { /* 断片は次メッセージまで保持 */ }
+    }
+}
+
+function startJAlertWebSocket() {
+    if (!JALERT_WS_URL) return; // 空指定なら無効
+    if (jalertSocket) { try { jalertSocket.close(); } catch(e) {} jalertSocket = null; }
+    if (jalertReconnectTimer) clearTimeout(jalertReconnectTimer);
+    jalertBuffer = "";
+    let sock;
+    try { sock = new WebSocket(JALERT_WS_URL); }
+    catch(e) { jalertReconnectTimer = setTimeout(startJAlertWebSocket, 5000); return; }
+    jalertSocket = sock;
+    sock.addEventListener("open", () => console.log("J-Alert bridge connected:", JALERT_WS_URL));
+    sock.addEventListener("message", event => {
+        if (typeof event.data === "string") { jalertBuffer += event.data; pumpJAlertBuffer(); }
+    });
+    sock.addEventListener("close", () => { jalertReconnectTimer = setTimeout(startJAlertWebSocket, 5000); });
+    sock.addEventListener("error", () => { try { sock.close(); } catch(e) {} });
+}
+
+const TEST_TSUNAMI_DATA = {
+    code:552,
+    cancelled:false,
+    areas:[
+        {
+            name:"北海道太平洋沿岸東部",
+            grade:"MajorWarning",
+            firstHeight:{
+                arrivalTime:"2026-07-07T08:50:00+09:00"
+            },
+            maxHeight:{
+                description:"10m超"
+            }
+        },
+        {
+            name:"北海道太平洋沿岸中部",
+            grade:"MajorWarning",
+            firstHeight:{
+                condition:"第1波の到達を確認"
+            },
+            maxHeight:{
+                description:"10m"
+            }
+        },
+        {
+            name:"青森県太平洋沿岸",
+            grade:"Warning",
+            firstHeight:{
+                condition:"津波到達中と推測"
+            },
+            maxHeight:{
+                description:"3m"
+            }
+        },
+        {
+            name:"岩手県",
+            grade:"Warning",
+            firstHeight:{
+                condition:"ただちに津波来襲と予測"
+            },
+            maxHeight:{
+                description:"3m"
+            }
+        },
+        {
+            name:"宮城県",
+            grade:"Warning",
+            firstHeight:{
+                arrivalTime:"2026-07-07T09:20:00+09:00"
+            },
+            maxHeight:{
+                description:"3m"
+            }
+        },
+        {
+            name:"福島県",
+            grade:"Watch",
+            firstHeight:{
+                arrivalTime:"2026-07-07T09:40:00+09:00"
+            },
+            maxHeight:{
+                description:"1m"
+            }
+        },
+        {
+            name:"茨城県",
+            grade:"Watch",
+            firstHeight:{
+                condition:"津波到達中と推測"
+            },
+            maxHeight:{
+                description:"1m"
+            }
+        },
+        {
+            name:"千葉県九十九里・外房",
+            grade:"Watch",
+            firstHeight:{
+                arrivalTime:"2026-07-07T10:10:00+09:00"
+            },
+            maxHeight:{
+                description:"1m"
+            }
+        },
+        {
+            name:"伊豆諸島",
+            grade:"Watch",
+            firstHeight:{
+                condition:"ただちに津波来襲と予測"
+            },
+            maxHeight:{
+                description:"1m"
+            }
+        },
+        {
+            name:"小笠原諸島",
+            grade:"Watch",
+            firstHeight:{
+                arrivalTime:"2026-07-07T10:30:00+09:00"
+            },
+            maxHeight:{
+                description:"1m"
+            }
+        }
+    ]
+};
+
+function init() {
+    if (TEST_MODE) {
+        renderFromTsunamiData(TEST_TSUNAMI_DATA);
+    } else {
+        showNoTsunamiScreen();
+        startTsunamiWebSocket();
+        startJAlertWebSocket();
+    }
+
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(() => {
+            requestAnimationFrame(() => {
+                applyScaling();
+                showPage(currentPageIndex);
+            });
+        }).catch(() => {});
+    }
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+} else {
+    init();
+}
+</script>
+</body>
+</html>
